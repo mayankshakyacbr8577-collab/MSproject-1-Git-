@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini E‑Commerce Store — Single File</title>
+  <style>
+    :root{--accent:#0ea5a4;--muted:#6b7280;--bg:#f8fafc;--card:#ffffff}
+    *{box-sizing:border-box}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:#111}
+    header{background:linear-gradient(90deg,#06b6d4 0%,#0891b2 100%); color:white; padding:18px 24px; display:flex; align-items:center; justify-content:space-between}
+    .brand{display:flex; gap:12px; align-items:center}
+    .logo{background:rgba(255,255,255,0.12); padding:8px 12px; border-radius:8px; font-weight:700}
+    nav a{color:rgba(255,255,255,0.95); text-decoration:none; margin-left:16px}
+    .container{max-width:1100px;margin:28px auto;padding:0 18px}
+    .hero{display:flex; gap:24px; align-items:center; justify-content:space-between; margin-bottom:22px}
+    .hero-left{max-width:620px}
+    h1{margin:0 0 10px 0; font-size:28px}
+    p.lead{margin:0;color:var(--muted)}
+    .search-cart{display:flex; gap:12px; align-items:center}
+    .search{display:flex; align-items:center; background:white; padding:8px; border-radius:10px; box-shadow:0 2px 6px rgba(15,23,42,0.06)}
+    .search input{border:0; outline:0; width:260px}
+
+    .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+    @media (max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:640px){.grid{grid-template-columns:1fr}}
+
+    .card{background:var(--card); border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.06); display:flex; flex-direction:column}
+    .card img{width:100%; height:180px; object-fit:cover; border-radius:8px}
+    .card .meta{display:flex; justify-content:space-between; align-items:center; margin-top:10px}
+    .price{font-weight:700}
+    .btn{background:var(--accent); color:white; border:0; padding:8px 12px; border-radius:8px; cursor:pointer}
+    .btn.secondary{background:#111827;color:white}
+    .cart-bubble{background:#ef4444; color:white; padding:3px 7px; border-radius:999px; font-weight:700; margin-left:6px}
+
+    /* Cart sidebar */
+    .cart-side{position:fixed; right:0; top:0; height:100vh; width:420px; max-width:95vw; background:white; box-shadow:-10px 0 30px rgba(2,6,23,0.2); transform:translateX(110%); transition:transform .28s; z-index:80; display:flex; flex-direction:column}
+    .cart-side.open{transform:translateX(0)}
+    .cart-head{padding:18px; border-bottom:1px solid #eef2f7; display:flex; justify-content:space-between}
+    .cart-list{flex:1; overflow:auto; padding:12px}
+    .cart-item{display:flex; gap:12px; padding:12px; border-radius:8px; align-items:center; border:1px solid #f1f5f9; margin-bottom:10px}
+    .cart-item img{width:70px; height:70px; object-fit:cover; border-radius:8px}
+    .cart-footer{padding:12px; border-top:1px solid #eef2f7}
+
+    /* Modal (product detail) */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(2,6,23,0.4); display:flex; align-items:center; justify-content:center; z-index:90}
+    .modal{background:white; width:760px; max-width:94vw; border-radius:12px; box-shadow:0 30px 60px rgba(2,6,23,0.35); overflow:auto; max-height:90vh}
+    .modal-body{display:flex; gap:18px; padding:14px}
+    .modal-body img{width:48%; height:360px; object-fit:cover; border-radius:10px}
+    .modal-right{flex:1}
+    label{font-size:13px;color:var(--muted)}
+
+    /* Checkout form */
+    .checkout{max-width:720px; margin:28px auto; background:white; padding:18px; border-radius:10px; box-shadow:0 10px 30px rgba(2,6,23,0.06)}
+    .field{display:flex; flex-direction:column; margin-bottom:12px}
+    input[type=text], input[type=email], input[type=tel]{padding:10px;border:1px solid #e6eef4;border-radius:8px}
+
+    footer{margin-top:36px;padding:22px;text-align:center;color:var(--muted)}
+
+    /* tiny admin area */
+    .admin{display:flex; gap:12px; align-items:center}
+    .pill{background:#f1f5f9;padding:6px 10px;border-radius:999px;font-weight:600}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">ShopBox</div>
+      <div style="color:rgba(255,255,255,0.9)">Simple store demo</div>
+    </div>
+    <div style="display:flex; align-items:center">
+      <nav>
+        <a href="#home">Home</a>
+        <a href="#products">Products</a>
+        <a href="#checkout">Checkout</a>
+      </nav>
+      <div style="width:18px"></div>
+      <div class="admin">
+        <button id="openCartBtn" class="btn">Cart <span id="cartCount" class="cart-bubble">0</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-left">
+        <h1>Build your cart & checkout — demo store</h1>
+        <p class="lead">Browse products, add to cart, and place a test order. Everything runs locally (no server required).</p>
+        <div style="margin-top:10px">
+          <button id="seedBtn" class="btn secondary">Seed sample products</button>
+        </div>
+      </div>
+
+      <div class="search-cart">
+        <div class="search">
+          <input id="searchInput" placeholder="Search products, e.g. jacket, phone...">
+        </div>
+      </div>
+    </section>
+
+    <section id="products">
+      <div id="productsGrid" class="grid"></div>
+    </section>
+
+    <section id="checkoutSection">
+      <div class="checkout">
+        <h3>Checkout (simulate)</h3>
+        <form id="checkoutForm">
+          <div class="field"><label>Full name</label><input required type="text" id="name"></div>
+          <div class="field"><label>Email</label><input required type="email" id="email"></div>
+          <div class="field"><label>Phone</label><input type="tel" id="phone"></div>
+          <div class="field"><label>Address</label><input required type="text" id="address"></div>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <button type="submit" class="btn">Place Order</button>
+            <div id="orderMessage" style="color:var(--muted)"></div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>Made with ❤️ — Demo E‑Commerce (static). Data stored in localStorage.</footer>
+
+  <!-- Cart sidebar -->
+  <aside id="cartSide" class="cart-side" aria-hidden="true">
+    <div class="cart-head">
+      <strong>Your Cart</strong>
+      <div>
+        <button id="clearCart" class="btn secondary">Clear</button>
+        <button id="closeCart" class="btn">Close</button>
+      </div>
+    </div>
+    <div class="cart-list" id="cartList"></div>
+    <div class="cart-footer">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><div>Subtotal</div><div id="cartSubtotal">₹0</div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button id="gotoCheckout" class="btn">Go to Checkout</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Modal -->
+  <div id="modalRoot" style="display:none"></div>
+
+  <script>
+    // ---------- Basic demo data store (localStorage-backed) ----------
+    const LS_PRODUCTS = 'demo_products_v1'
+    const LS_CART = 'demo_cart_v1'
+
+    // default sample products
+    const sampleProducts = [
+      {id: 'p1', title:'Blue Denim Jacket', price:1999, img:'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=60', category:'Clothes', desc:'Classic denim jacket, unisex.'},
+      {id: 'p2', title:'Wireless Headphones', price:2999, img:'https://images.unsplash.com/photo-1518444029457-0a7f9fbabf32?auto=format&fit=crop&w=800&q=60', category:'Electronics', desc:'Over-ear headphones with long battery.'},
+      {id: 'p3', title:'Handmade Ceramic Mug', price:499, img:'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=800&q=60', category:'Crafts', desc:'Stoneware mug hand-glazed.'},
+      {id: 'p4', title:'Classic Sneakers', price:2599, img:'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=60', category:'Clothes', desc:'Comfortable everyday sneakers.'},
+      {id: 'p5', title:'Bluetooth Speaker', price:1499, img:'https://images.unsplash.com/photo-1512034400317-8f2e0b7d0b3b?auto=format&fit=crop&w=800&q=60', category:'Electronics', desc:'Portable speaker with punchy bass.'}
+    ]
+
+    // helpers
+    const $ = sel => document.querySelector(sel)
+    const $$ = sel => Array.from(document.querySelectorAll(sel))
+
+    function saveProducts(list){ localStorage.setItem(LS_PRODUCTS, JSON.stringify(list)) }
+    function loadProducts(){
+      const raw = localStorage.getItem(LS_PRODUCTS)
+      if(!raw) return []
+      try{ return JSON.parse(raw)}catch{ return [] }
+    }
+    function seedProducts(){ saveProducts(sampleProducts); renderProducts(sampleProducts); }
+
+    // cart operations
+    function loadCart(){ try { return JSON.parse(localStorage.getItem(LS_CART) || '[]') } catch { return [] } }
+    function saveCart(cart){ localStorage.setItem(LS_CART, JSON.stringify(cart)); renderCartCount(); renderCartSidebar() }
+
+    function addToCart(productId, qty=1){
+      const products = loadProducts()
+      const p = products.find(x=>x.id===productId)
+      if(!p) return alert('Product not found')
+      const cart = loadCart()
+      const item = cart.find(i=>i.id===productId)
+      if(item) item.qty += qty; else cart.push({id:productId, qty, title:p.title, price:p.price, img:p.img})
+      saveCart(cart)
+      flash('Added to cart')
+    }
+
+    function removeFromCart(productId){ let cart = loadCart(); cart = cart.filter(i=>i.id!==productId); saveCart(cart) }
+    function changeQty(productId, qty){ const cart = loadCart(); const it = cart.find(i=>i.id===productId); if(!it) return; it.qty = Math.max(1, qty); saveCart(cart) }
+    function clearCart(){ localStorage.removeItem(LS_CART); renderCartCount(); renderCartSidebar() }
+
+    // ---------- Rendering ----------
+    const grid = $('#productsGrid')
+    function formatCurrency(n){ return '₹' + n.toLocaleString('en-IN') }
+
+    function productCard(p){
+      const el = document.createElement('div'); el.className='card';
+      el.innerHTML = `
+        <img src="${p.img}" alt="${escapeHtml(p.title)}">
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><strong>${escapeHtml(p.title)}</strong><div style="color:var(--muted);font-size:13px">${escapeHtml(p.category)}</div></div>
+            <div class="price">${formatCurrency(p.price)}</div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button data-id="${p.id}" class="btn addBtn">Add</button>
+            <button data-id="${p.id}" class="btn secondary viewBtn">View</button>
+          </div>
+        </div>`
+      return el
+    }
+
+    function renderProducts(list){ grid.innerHTML=''; if(!list || list.length===0){ grid.innerHTML='<div style="grid-column:1/-1;padding:20px;color:var(--muted)">No products. Click "Seed sample products" to add demo items.</div>'; return }
+      list.forEach(p=> grid.appendChild(productCard(p)))
+      // attach handlers
+      $$('.addBtn').forEach(b=> b.onclick = e=> { addToCart(e.currentTarget.dataset.id); })
+      $$('.viewBtn').forEach(b=> b.onclick = e=> { openProductModal(e.currentTarget.dataset.id) })
+    }
+
+    // cart UI
+    function renderCartCount(){ const cart = loadCart(); const count = cart.reduce((s,i)=>s+i.qty,0); $('#cartCount').textContent = count }
+
+    function renderCartSidebar(){ const list = loadCart(); const container = $('#cartList'); container.innerHTML=''
+      if(list.length===0){ container.innerHTML='<div style="color:var(--muted);padding:18px">Your cart is empty</div>'; $('#cartSubtotal').textContent='₹0'; return }
+      list.forEach(item=>{
+        const div = document.createElement('div'); div.className='cart-item'
+        div.innerHTML = `
+          <img src="${item.img}" alt="${escapeHtml(item.title)}">
+          <div style="flex:1">
+            <div style="font-weight:700">${escapeHtml(item.title)}</div>
+            <div style="color:var(--muted);font-size:13px">${formatCurrency(item.price)}</div>
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+              <input type="number" min="1" value="${item.qty}" style="width:70px;padding:6px;border-radius:8px;border:1px solid #e6eef4" data-id="${item.id}" class="cartQty">
+              <button data-id="${item.id}" class="btn secondary rmBtn">Remove</button>
+            </div>
+          </div>`
+        container.appendChild(div)
+      })
+      // subtotal
+      const subtotal = list.reduce((s,i)=>s + (i.price * i.qty),0)
+      $('#cartSubtotal').textContent = formatCurrency(subtotal)
+      // handlers
+      $$('.rmBtn').forEach(b=> b.onclick = e=> { removeFromCart(e.currentTarget.dataset.id) })
+      $$('.cartQty').forEach(inp=> inp.onchange = e=> changeQty(e.currentTarget.dataset.id, parseInt(e.currentTarget.value||1)))
+    }
+
+    // modal
+    function openProductModal(id){ const products = loadProducts(); const p = products.find(x=>x.id===id); if(!p) return; const root = $('#modalRoot'); root.style.display='block'; root.innerHTML = `
+      <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal">
+          <div class="modal-body">
+            <img src="${p.img}" alt="${escapeHtml(p.title)}">
+            <div class="modal-right">
+              <h2 style="margin-top:0">${escapeHtml(p.title)}</h2>
+              <div style="color:var(--muted);margin-bottom:12px">${escapeHtml(p.category)} — ${formatCurrency(p.price)}</div>
+              <p style="margin-top:6px">${escapeHtml(p.desc)}</p>
+              <div style="margin-top:14px;display:flex;gap:8px">
+                <input id="modalQty" type="number" value="1" min="1" style="width:80px;padding:8px;border-radius:8px;border:1px solid #e6eef4">
+                <button id="modalAdd" class="btn">Add to cart</button>
+                <button id="modalClose" class="btn secondary">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`
+      // attach
+      $('#modalBackdrop').onclick = (ev)=>{ if(ev.target.id === 'modalBackdrop') closeModal() }
+      $('#modalClose').onclick = closeModal
+      $('#modalAdd').onclick = ()=>{ addToCart(p.id, parseInt($('#modalQty').value||1)); closeModal() }
+    }
+    function closeModal(){ const root = $('#modalRoot'); root.style.display='none'; root.innerHTML='' }
+
+    // tiny helpers
+    function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
+    function flash(msg){ const d = document.createElement('div'); d.textContent=msg; d.style.position='fixed'; d.style.right='18px'; d.style.bottom='18px'; d.style.background='black'; d.style.color='white'; d.style.padding='10px 12px'; d.style.borderRadius='8px'; d.style.zIndex=999; document.body.appendChild(d); setTimeout(()=> d.remove(),1400) }
+
+    // search
+    $('#searchInput').addEventListener('input', e=>{
+      const q = e.target.value.trim().toLowerCase()
+      const list = loadProducts()
+      if(!q) return renderProducts(list)
+      const filtered = list.filter(p=> p.title.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+      renderProducts(filtered)
+    })
+
+    // cart sidebar toggles
+    $('#openCartBtn').onclick = ()=>{ $('#cartSide').classList.add('open'); $('#cartSide').setAttribute('aria-hidden','false') }
+    $('#closeCart').onclick = ()=>{ $('#cartSide').classList.remove('open'); $('#cartSide').setAttribute('aria-hidden','true') }
+    $('#clearCart').onclick = ()=>{ if(confirm('Clear cart?')) { clearCart() } }
+    $('#gotoCheckout').onclick = ()=>{ $('#cartSide').classList.remove('open'); location.hash = '#checkout' }
+
+    // checkout form
+    $('#checkoutForm').onsubmit = (ev)=>{
+      ev.preventDefault();
+      const cart = loadCart(); if(cart.length===0){ alert('Cart empty — add items before placing an order.'); return }
+      const order = {
+        id: 'ord_' + Date.now(),
+        name: $('#name').value.trim(), email: $('#email').value.trim(), phone: $('#phone').value.trim(), address: $('#address').value.trim(), items: cart, total: cart.reduce((s,i)=>s + i.price*i.qty,0), date: new Date().toISOString()
+      }
+      // simulate order placement (we'll store in localStorage 'demo_orders')
+      const orders = JSON.parse(localStorage.getItem('demo_orders_v1')||'[]')
+      orders.push(order)
+      localStorage.setItem('demo_orders_v1', JSON.stringify(orders))
+      // clear cart
+      clearCart()
+      $('#checkoutForm').reset()
+      $('#orderMessage').textContent = 'Order placed! Order ID: ' + order.id
+      setTimeout(()=> $('#orderMessage').textContent = '', 6000)
+      console.log('Placed order:', order)
+    }
+
+    // small admin: seed products + add product form (simple prompt)
+    $('#seedBtn').onclick = ()=>{ if(confirm('Seed sample products? This will override existing products.')){ seedProducts(); renderCartCount(); flash('Seeded products') } }
+
+    // load initial
+    function init(){
+      const prods = loadProducts()
+      if(prods.length===0){ renderProducts([]) } else renderProducts(prods)
+      renderCartCount(); renderCartSidebar()
+    }
+
+    init()
+  </script>
+</body>
+</html>
